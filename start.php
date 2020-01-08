@@ -95,6 +95,25 @@ function getProcessVariables($camundaUrl, $processInstanceId) {
     return $processVariables;
 }
 
+function mixProcessVariables($processVariables, $message) {
+    // @todo проверка на валидность message в process variables
+    $processVariablesMessage = json_decode($processVariables->message->value, true);
+    $processVariablesMessageData = $processVariablesMessage['data'];
+    $processVariablesMessageDataParameters = $processVariablesMessage['data']['parameters'];
+    $mixedProcessVariablesDataParameters = array_merge($processVariablesMessageDataParameters, $message['data']);
+
+    $processVariablesMessageData['parameters'] = $mixedProcessVariablesDataParameters;
+    $processVariablesMessage['data'] = $processVariablesMessageData;
+
+    // Update variables
+    $updateVariables['message'] = [
+        'value' => json_encode($processVariablesMessage),
+        'type' => 'Json'
+    ];
+
+    return $updateVariables;
+}
+
 /**
  * Callback
  *
@@ -122,21 +141,7 @@ $callback = function($msg) {
 
     $processVariables = getProcessVariables($camundaUrl, $message['headers']['camundaProcessInstanceId']);
 
-    // @todo проверка на валидность message в process variables
-    // @todo вынести в функцию mix_data_message
-    $processVariablesMessage = json_decode($processVariables->message->value, true);
-    $processVariablesMessageData = $processVariablesMessage['data'];
-    $processVariablesMessageDataParameters = $processVariablesMessage['data']['parameters'];
-    $mixedProcessVariablesDataParameters = array_merge($processVariablesMessageDataParameters, $message['data']);
-
-    $processVariablesMessageData['parameters'] = $mixedProcessVariablesDataParameters;
-    $processVariablesMessage['data'] = $processVariablesMessageData;
-
-    // Update variables
-    $updateVariables['message'] = [
-        'value' => json_encode($processVariablesMessage),
-        'type' => 'Json'
-    ];
+    $updateVariables = mixProcessVariables($processVariables, $message);
 
     $messageRequest = (new MessageRequest())
         ->set('processVariables', $updateVariables)
