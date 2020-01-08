@@ -1,0 +1,14 @@
+application:
+  name: bpm-listener
+  title: BPM process listener
+  author: Andrey Mokretsov
+  language:
+    - php7.2
+  depends:
+    - composer
+    - php-amqplib
+    - ext-pcntl
+    - camunda-rest-client
+  queues:
+    in:
+      - bpm_listener

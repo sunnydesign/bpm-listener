@@ -1,0 +1,10 @@
+version: '3'
+services:
+  bpm-listener:
+    build: .
+    image: docker.quancy.com.sg/bpm-listener:${VERSION-latest}
+    container_name: bpm-listener
+    network_mode: bridge
+    restart: always
+    env_file:
+      - .env
