@@ -92,27 +92,74 @@ function getProcessVariables($camundaUrl, $processInstanceId) {
     $getVariablesService = new ProcessInstanceService($camundaUrl);
     $processVariables = $getVariablesService->getVariableList($processInstanceId, $getVariablesRequest);
 
+    if($getVariablesService->getResponseCode() == 200) {
+        return $processVariables;
+    } else {
+        $logMessage = sprintf(
+            "Process variables from process instance <%s> not received, because `%s`",
+            $processInstanceId,
+            $getVariablesService->getResponseContents()->message ?? 'Request error'
+        );
+        Logger::log($logMessage, 'input', RMQ_QUEUE_IN,'bpm-listener', 1 );
+
+        return null;
+    }
+}
+
+/**
+ * Mix process variables
+ *
+ * @param $processVariables
+ * @param $message
+ * @return array
+ */
+function mixProcessVariables($processVariables, $message) {
+    if($processVariables) {
+        $processVariablesMessage = json_decode($processVariables->message->value, true);
+        $processVariablesMessageData = $processVariablesMessage['data'];
+        $processVariablesMessageDataParameters = $processVariablesMessage['data']['parameters'];
+        $mixedProcessVariablesDataParameters = array_merge($processVariablesMessageDataParameters, $message['data']);
+
+        $processVariablesMessageData['parameters'] = $mixedProcessVariablesDataParameters;
+        $processVariablesMessage['data'] = $processVariablesMessageData;
+
+        // Update variables
+        $updateVariables['message'] = [
+            'value' => json_encode($processVariablesMessage),
+            'type' => 'Json'
+        ];
+    } else {
+        $updateVariables['message'] = [
+            'value' => json_encode($message),
+            'type' => 'Json'
+        ];
+    }
+    return $updateVariables;
+
+}
+
+/**
+ * if synchronous mode
+ * add correlation id and temporary queue
+ *
+ * @param $processVariables array
+ * @param $msg object
+ * @return array
+ */
+function mixRabbitCorellationInfo($processVariables, $msg) {
+    if($msg->has('correlation_id') && $msg->has('reply_to')) {
+        $processVariables['rabbitCorrelationId'] = [
+            'value' => $msg->get('correlation_id'),
+            'type'  => 'string',
+        ];
+        $processVariables['rabbitCorrelationReplyTo'] = [
+            'value' => $msg->get('reply_to'),
+            'type'  => 'string',
+        ];
+    }
     return $processVariables;
 }
 
-function mixProcessVariables($processVariables, $message) {
-    // @todo проверка на валидность message в process variables
-    $processVariablesMessage = json_decode($processVariables->message->value, true);
-    $processVariablesMessageData = $processVariablesMessage['data'];
-    $processVariablesMessageDataParameters = $processVariablesMessage['data']['parameters'];
-    $mixedProcessVariablesDataParameters = array_merge($processVariablesMessageDataParameters, $message['data']);
-
-    $processVariablesMessageData['parameters'] = $mixedProcessVariablesDataParameters;
-    $processVariablesMessage['data'] = $processVariablesMessageData;
-
-    // Update variables
-    $updateVariables['message'] = [
-        'value' => json_encode($processVariablesMessage),
-        'type' => 'Json'
-    ];
-
-    return $updateVariables;
-}
 
 /**
  * Callback
@@ -140,8 +187,8 @@ $callback = function($msg) {
     $camundaUrl = sprintf(CAMUNDA_API_URL, CAMUNDA_API_LOGIN, CAMUNDA_API_PASS); // camunda api with basic auth
 
     $processVariables = getProcessVariables($camundaUrl, $message['headers']['camundaProcessInstanceId']);
-
-    $updateVariables = mixProcessVariables($processVariables, $message);
+    $processVariables = mixProcessVariables($processVariables, $message);
+    $updateVariables = mixRabbitCorellationInfo($processVariables, $msg);
 
     $messageRequest = (new MessageRequest())
         ->set('processVariables', $updateVariables)
@@ -198,11 +245,11 @@ while(true) {
         cleanup_connection($connection);
         usleep(RMQ_RECONNECT_TIMEOUT);
     } catch(\RuntimeException $e) {
-        echo "Runtime exception " . PHP_EOL;
+        echo "Runtime exception " . $e->getMessage() . PHP_EOL;
         cleanup_connection($connection);
         usleep(RMQ_RECONNECT_TIMEOUT);
     } catch(\ErrorException $e) {
-        echo "Error exception " . PHP_EOL;
+        echo "Error exception " . $e->getMessage() . PHP_EOL;
         cleanup_connection($connection);
         usleep(RMQ_RECONNECT_TIMEOUT);
     }
