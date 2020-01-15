@@ -16,6 +16,7 @@ use Camunda\Entity\Request\MessageRequest;
 use Camunda\Service\MessageService;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
+use PhpAmqpLib\Message\AMQPMessage;
 use Quancy\Logger\Logger;
 
 // Config
@@ -56,6 +57,8 @@ function shutdown($connection)
 
 /**
  * Validate message
+ *
+ * @return boolean
  */
 function validate_message($message) {
     // Headers
@@ -75,6 +78,8 @@ function validate_message($message) {
             exit(1);
         }
     }
+
+    return true;
 }
 
 /**
@@ -116,12 +121,10 @@ function getProcessVariables($camundaUrl, $processInstanceId) {
 function mixProcessVariables($processVariables, $message) {
     if($processVariables) {
         $processVariablesMessage = json_decode($processVariables->message->value, true);
-        $processVariablesMessageData = $processVariablesMessage['data'];
-        $processVariablesMessageDataParameters = $processVariablesMessage['data']['parameters'];
-        $mixedProcessVariablesDataParameters = array_merge($processVariablesMessageDataParameters, $message['data']);
 
-        $processVariablesMessageData['parameters'] = $mixedProcessVariablesDataParameters;
-        $processVariablesMessage['data'] = $processVariablesMessageData;
+        $mixedProcessVariablesDataParameters = array_merge($processVariablesMessage['data']['parameters'], $message['data']);
+        $processVariablesMessage['data']['parameters'] = $mixedProcessVariablesDataParameters;
+        $processVariablesMessage['headers'] = array_merge($processVariablesMessage['headers'], $message['headers']);
 
         // Update variables
         $updateVariables['message'] = [
@@ -157,9 +160,30 @@ function mixRabbitCorellationInfo($processVariables, $msg) {
             'type'  => 'string',
         ];
     }
+
     return $processVariables;
 }
 
+/**
+ * Get formatted error response
+ * for synchronous request
+ *
+ * @param string $message
+ * @return string
+ */
+function getErrorResponseForSynchronousRequest(string $message): string
+{
+    $response = [
+        'success' => false,
+        'error'   => [
+            [
+                'message' => $message
+            ]
+        ]
+    ];
+
+    return json_encode($response);
+}
 
 /**
  * Callback
@@ -171,11 +195,6 @@ $callback = function($msg) {
 
     // Set manual acknowledge for received message
     $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
-
-    // Send a message with the string "quit" to cancel the consumer.
-    if ($msg->body === 'quit') {
-        $msg->delivery_info['channel']->basic_cancel($msg->delivery_info['consumer_tag']);
-    }
 
     // Update variables
     $message = json_decode($msg->body, true);
@@ -209,12 +228,21 @@ $callback = function($msg) {
         );
         Logger::log($logMessage, 'input', RMQ_QUEUE_IN,'bpm-listener', 0 );
     } else {
+        $requestErrorMessage = 'Request error';
+        $response = $messageService->getResponseContents()->message ?? $requestErrorMessage;
         $logMessage = sprintf(
             "Correlate a Message <%s> not received, because `%s`",
             $message['headers']['camundaListenerMessageName'],
-            $messageService->getResponseContents()->message ?? 'Request error'
+            $response
         );
         Logger::log($logMessage, 'input', RMQ_QUEUE_IN,'bpm-listener', 1 );
+
+        // if is synchronous mode
+        if($msg->has('correlation_id') && $msg->has('reply_to')) {
+            $sync_msg_error = getErrorResponseForSynchronousRequest($requestErrorMessage);
+            $sync_msg = new AMQPMessage($sync_msg_error, ['correlation_id' => $msg->get('correlation_id')]);
+            $msg->delivery_info['channel']->basic_publish($sync_msg, '', $msg->get('reply_to'));
+        }
     }
 };
 
