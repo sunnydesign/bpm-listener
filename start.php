@@ -50,7 +50,7 @@ $camundaConfig = [
 $rmqConfig = [
     'queue'            => RMQ_QUEUE_IN,
     'tickTimeout'      => RMQ_TICK_TIMEOUT,
-    'reconnectTimeout' => RMQ_RECONNECT_TIMEOUT,
+    'reconnectTimeout' => RMQ_RECONNECT_TIMEOUT
 ];
 
 // Run worker

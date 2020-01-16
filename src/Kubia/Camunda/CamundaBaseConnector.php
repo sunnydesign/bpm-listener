@@ -10,7 +10,8 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Quancy\Logger\Logger;
 
 /**
- * Base Abstract Class CamundaBaseConnector
+ * Abstract Class CamundaBaseConnector
+ * @package Kubia\Camunda
  */
 abstract class CamundaBaseConnector
 {
@@ -51,12 +52,18 @@ abstract class CamundaBaseConnector
     public $rmqConfig = [];
 
     /**
-     * CamundaBaseConnector constructor
-     * @param $connection
-     * @param $camundaConfig
-     * @param $rmqConfig
+     * @param AMQPMessage $msg
+     * @return void
      */
-    function __construct(AMQPStreamConnection &$connection, array $camundaConfig, array $rmqConfig)
+    abstract protected function callback(AMQPMessage $msg): void;
+
+    /**
+     * CamundaBaseConnector constructor.
+     * @param AMQPStreamConnection $connection
+     * @param array $camundaConfig
+     * @param array $rmqConfig
+     */
+    public function __construct(AMQPStreamConnection &$connection, array $camundaConfig, array $rmqConfig)
     {
         $this->camundaConfig = $camundaConfig;
         $this->rmqConfig = $rmqConfig;
@@ -118,6 +125,20 @@ abstract class CamundaBaseConnector
     }
 
     /**
+     * Get formatted success response
+     * for synchronous request
+     * @return string
+     */
+    public function getSuccessResponseForSynchronousRequest(): string
+    {
+        $response = [
+            'success' => true
+        ];
+
+        return json_encode($response);
+    }
+
+    /**
      * Get formatted error response
      * for synchronous request
      * @param string $message
@@ -158,24 +179,6 @@ abstract class CamundaBaseConnector
     public function shutdown(): void
     {
         $this->connection->close();
-    }
-
-    /**
-     * Callback
-     * @param AMQPMessage $msg
-     */
-    public function callback(AMQPMessage $msg): void
-    {
-        Logger::log(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
-
-        // Set manual acknowledge for received message
-        $this->channel->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
-
-        // Update variables
-        $this->message = json_decode($msg->body, true);
-        $this->headers = $this->message['headers'] ?? null;
-
-        // something else
     }
 
     /**
