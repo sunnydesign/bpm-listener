@@ -5,7 +5,7 @@ namespace Kubia\Camunda;
 use Camunda\Entity\Request\MessageRequest;
 use Camunda\Service\MessageService;
 use PhpAmqpLib\Message\AMQPMessage;
-use Quancy\Logger\Logger;
+use Kubia\Logger\Logger;
 
 /**
  * Class CamundaListener
@@ -49,17 +49,16 @@ class CamundaListener extends CamundaBaseConnector
     /**
      * if synchronous mode
      * add correlation id and temporary queue
-     * @param AMQPMessage $msg
      */
-    function mixRabbitCorrelationInfo(AMQPMessage $msg): void
+    function mixRabbitCorrelationInfo(): void
     {
-        if($msg->has('correlation_id') && $msg->has('reply_to')) {
+        if($this->msg->has('correlation_id') && $this->msg->has('reply_to')) {
             $this->updatedVariables['rabbitCorrelationId'] = [
-                'value' => $msg->get('correlation_id'),
+                'value' => $this->msg->get('correlation_id'),
                 'type'  => 'string',
             ];
             $this->updatedVariables['rabbitCorrelationReplyTo'] = [
-                'value' => $msg->get('reply_to'),
+                'value' => $this->msg->get('reply_to'),
                 'type'  => 'string',
             ];
         }
@@ -76,6 +75,8 @@ class CamundaListener extends CamundaBaseConnector
         // Set manual acknowledge for received message
         $this->channel->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
 
+        $this->msg = $msg;
+
         // Update variables
         $this->message = json_decode($msg->body, true);
         $this->headers = $this->message['headers'] ?? null;
@@ -90,7 +91,7 @@ class CamundaListener extends CamundaBaseConnector
         $this->mixProcessVariables();
 
         // add correlation_id and reply_to to process variables if is synchronous request
-        $this->mixRabbitCorrelationInfo($msg);
+        $this->mixRabbitCorrelationInfo();
 
         $messageRequest = (new MessageRequest())
             ->set('processVariables', $this->updatedVariables)
@@ -120,11 +121,8 @@ class CamundaListener extends CamundaBaseConnector
             Logger::log($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 1 );
 
             // if is synchronous mode
-            if($msg->has('correlation_id') && $msg->has('reply_to')) {
-                $responseToSync = $this->getErrorResponseForSynchronousRequest($this->requestErrorMessage);
-                $sync_msg = new AMQPMessage($responseToSync, ['correlation_id' => $msg->get('correlation_id')]);
-                $msg->delivery_info['channel']->basic_publish($sync_msg, '', $msg->get('reply_to'));
-            }
+            if($msg->has('correlation_id') && $msg->has('reply_to'))
+                $this->sendSynchronousResponse($msg, false);
         }
     }
 }

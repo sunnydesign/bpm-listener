@@ -1,5 +1,5 @@
 {
-    "name": "quancy/bpm-listener",
+    "name": "kubia/bpm-listener",
     "description": "Camunda Process Listener",
     "keywords": ["listener", "catcher", "bpm", "Camunda", "Rabbit MQ", "process catch"],
     "license": "proprietary",
@@ -18,14 +18,10 @@
     ],
     "require": {
         "php": ">=7.2.0",
-        "ext-pcntl": "*",
-        "endpot/camunda-rest-client": "^1.1",
-        "php-amqplib/php-amqplib": "2.11.0",
-        "quancy/logger": "0.1"
+        "kubia/camunda": "0.1"
     },
     "autoload": {
         "psr-4": {
-            "Quancy\\Logger\\": "src/Kubia/Logger",
             "Kubia\\": "src/Kubia"
         }
     }

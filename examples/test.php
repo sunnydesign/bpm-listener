@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -39,7 +39,7 @@ class AMQPResponse {
 }
 
 // for test; remove it
-for($i=0; $i<100; $i++) {
+for($i=0; $i<5; $i++) {
 
     $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
     $channel = $connection->channel();
@@ -49,13 +49,23 @@ for($i=0; $i<100; $i++) {
     $AMQPResponse = new AMQPResponse( $callback_queue, $channel );
     $channel->basic_consume($callback_queue, '', false, false, false, false, [$AMQPResponse, 'onResponse']);
 
+    // Usage
+    $usageHelp = 'Usage for example: php ./examples/test.php --otp="94876" id="db36f0c4-3927-11ea-8da5-0242ac110029"';
+    $options = getopt('', ['otp:', 'id:']);
+
+    if(!isset($options['otp']) || !isset($options['id'])) {
+        fwrite(STDERR, "Error: Missing options.\n");
+        fwrite(STDERR, $usageHelp . "\n");
+        exit(1);
+    }
+
     $data = [
         "data" => [
-            "otp" => "68853"
+            "otp" => $options['otp']
         ],
         "headers" => [
             "camundaListenerMessageName" => "listener-otp",
-            "camundaProcessInstanceId"   => "cf9222db-383e-11ea-8da5-0242ac110029",
+            "camundaProcessInstanceId"   => $options['id'],
         ],
         'time'   => time(),
     ];
