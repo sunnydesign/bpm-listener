@@ -14,7 +14,6 @@ class CamundaListener extends CamundaBaseConnector
 {
     /** @var array */
     public $unsafeHeadersParams = [
-        'camundaWorkerId',
         'camundaExternalTaskId'
     ];
 
