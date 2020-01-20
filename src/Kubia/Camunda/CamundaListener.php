@@ -72,6 +72,8 @@ class CamundaListener extends CamundaBaseConnector
     {
         Logger::log(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
 
+        $this->requestErrorMessage = 'Request error';
+
         // Set manual acknowledge for received message
         $this->channel->basic_ack($msg->delivery_info['delivery_tag']); // manual confirm delivery message
 
