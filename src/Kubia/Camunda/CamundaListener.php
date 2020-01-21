@@ -114,6 +114,10 @@ class CamundaListener extends CamundaBaseConnector
             );
             Logger::log($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
         } else {
+            // if is synchronous mode
+            if($msg->has('correlation_id') && $msg->has('reply_to'))
+                $this->sendSynchronousResponse($msg, false);
+
             $response = $messageService->getResponseContents()->message ?? $this->requestErrorMessage;
             $logMessage = sprintf(
                 "Correlate a Message <%s> not received, because `%s`",
@@ -121,10 +125,6 @@ class CamundaListener extends CamundaBaseConnector
                 $response
             );
             Logger::log($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 1 );
-
-            // if is synchronous mode
-            if($msg->has('correlation_id') && $msg->has('reply_to'))
-                $this->sendSynchronousResponse($msg, false);
         }
     }
 }
