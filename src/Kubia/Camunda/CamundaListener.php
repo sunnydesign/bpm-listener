@@ -28,9 +28,10 @@ class CamundaListener extends CamundaBaseConnector
     {
         if($this->processVariables) {
             $processVariablesMessage = json_decode($this->processVariables->message->value, true);
+            $paramsFromVariables = $processVariablesMessage['data']['parameters'] ?? [];
+            $paramsFromMessage = $this->message['data'] ?? [];
 
-            $mixedProcessVariablesDataParameters = array_merge($processVariablesMessage['data']['parameters'], $this->message['data']);
-            $processVariablesMessage['data']['parameters'] = $mixedProcessVariablesDataParameters;
+            $processVariablesMessage['data']['parameters'] = array_merge($paramsFromVariables, $paramsFromMessage);
             $processVariablesMessage['headers'] = array_merge($processVariablesMessage['headers'], $this->headers);
 
             // Update variables
