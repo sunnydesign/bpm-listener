@@ -126,7 +126,7 @@ class CamundaListener extends CamundaBaseConnector
                 $this->data,
                 $this->headers,
                 $errors,
-                $this->channel,
+                $this->channelLog,
                 $this->rmqConfig['queueLog']
             );
         }

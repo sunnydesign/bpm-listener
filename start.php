@@ -41,6 +41,24 @@ $connection = new AMQPStreamConnection(
     60
 );
 
+// Create connection for logging
+$connectionLog = new AMQPStreamConnection(
+    RMQ_HOST,
+    RMQ_PORT,
+    RMQ_USER_LOG,
+    RMQ_PASS_LOG,
+    RMQ_VHOST_LOG,
+    false,
+    'AMQPLAIN',
+    null,
+    'en_US',
+    3.0,
+    3.0,
+    null,
+    true,
+    60
+);
+
 // Config
 $camundaConfig = [
     'apiUrl'   => CAMUNDA_API_URL,
@@ -51,9 +69,12 @@ $rmqConfig = [
     'queue'            => RMQ_QUEUE_IN,
     'tickTimeout'      => RMQ_TICK_TIMEOUT,
     'reconnectTimeout' => RMQ_RECONNECT_TIMEOUT,
-    'queueLog'         => RMQ_QUEUE_LOG
+    'queueLog'         => RMQ_QUEUE_LOG,
+    'vhostLog'         => RMQ_VHOST_LOG,
+    'userLog'          => RMQ_USER_LOG,
+    'passLog'          => RMQ_PASS_LOG
 ];
 
 // Run worker
-$worker = new CamundaListener($connection, $camundaConfig, $rmqConfig);
+$worker = new CamundaListener($connection, $connectionLog, $camundaConfig, $rmqConfig);
 $worker->run();

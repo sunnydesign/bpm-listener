@@ -9,6 +9,7 @@ BPM listener on PHP. Using to catch message from queue and resume business proce
 
 ## Queues
 - Incoming queue: `bpm_listener`
+- Log queue: `bpm_events`
 
 ## Requirements
 - php7.2-cli
@@ -28,6 +29,10 @@ BPM listener on PHP. Using to catch message from queue and resume business proce
 - RMQ_USER=`<secret>`
 - RMQ_PASS=`<secret>`
 - RMQ_QUEUE_IN=bpm_listener
+- RMQ_QUEUE_LOG=bpm_events
+- RMQ_VHOST_LOG=quancy.com.sg
+- RMQ_USER_LOG=`<secret>`
+- RMQ_PASS_LOG=`<secret>`
 - RMQ_RECONNECT_TIMEOUT=10000
 - RMQ_TICK_TIMEOUT=10000
 

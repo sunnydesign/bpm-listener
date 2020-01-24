@@ -12,3 +12,5 @@ application:
   queues:
     in:
       - bpm_listener
+    log:
+      - bpm_events
