@@ -119,7 +119,7 @@ class CamundaListener extends CamundaBaseConnector
     public function logEvent(string $message, array $errors = []): void
     {
         Logger::stdout($message, 'input', $this->rmqConfig['queue'], $this->logOwner, empty($errors) ? 1 : 0);
-        if(isset($this->rmqConfig['queueLog'])) {
+        if($this->rmqConfig['logger']) {
             Logger::elastic('bpm',
                 'in progress',
                 '',
