@@ -53,7 +53,7 @@ class CamundaListener extends CamundaBaseConnector
      */
     public function callback(AMQPMessage $msg): void
     {
-        Logger::log(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
+        Logger::stdout(sprintf("Received %s", $msg->body), 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
 
         $this->requestErrorMessage = 'Request error';
 
@@ -95,7 +95,7 @@ class CamundaListener extends CamundaBaseConnector
                 "Correlate a Message <%s> received",
                 $this->headers['camundaListenerMessageName']
             );
-            Logger::log($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 0 );
+            $this->logEvent($logMessage, ['type' => 'business', 'message' => $logMessage]);
         } else {
             // if is synchronous mode
             if($msg->has('correlation_id') && $msg->has('reply_to'))
@@ -107,7 +107,28 @@ class CamundaListener extends CamundaBaseConnector
                 $this->headers['camundaListenerMessageName'],
                 $response
             );
-            Logger::log($logMessage, 'input', $this->rmqConfig['queue'], $this->logOwner, 1 );
+            $this->logEvent($logMessage, ['type' => 'business', 'message' => $logMessage]);
+        }
+    }
+
+    /**
+     * Logging event
+     * @param string $message
+     * @param array $errors
+     */
+    public function logEvent(string $message, array $errors = []): void
+    {
+        Logger::stdout($message, 'input', $this->rmqConfig['queue'], $this->logOwner, empty($errors) ? 1 : 0);
+        if(isset($this->rmqConfig['queueLog'])) {
+            Logger::elastic('bpm',
+                'in progress',
+                '',
+                $this->data,
+                $this->headers,
+                $errors,
+                $this->channel,
+                $this->rmqConfig['queueLog']
+            );
         }
     }
 }
