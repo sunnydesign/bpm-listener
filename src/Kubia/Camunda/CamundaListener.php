@@ -95,7 +95,7 @@ class CamundaListener extends CamundaBaseConnector
                 "Correlate a Message <%s> received",
                 $this->headers['camundaListenerMessageName']
             );
-            $this->logEvent($logMessage, ['type' => 'business', 'message' => $logMessage]);
+            $this->logEvent($logMessage, []);
         } else {
             // if is synchronous mode
             if($msg->has('correlation_id') && $msg->has('reply_to'))
