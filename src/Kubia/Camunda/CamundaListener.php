@@ -123,8 +123,8 @@ class CamundaListener extends CamundaBaseConnector
             Logger::elastic('bpm',
                 'in progress',
                 '',
-                (object)$this->message['data'] ?? (object)[],
-                (object)$this->headers ?? (object)[],
+                (object)($this->message['data'] ?? []),
+                (object)($this->headers ?? []),
                 $errors,
                 $this->channelLog,
                 $this->rmqConfig['queueLog']
