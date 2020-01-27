@@ -18,7 +18,7 @@
     ],
     "require": {
         "php": ">=7.2.0",
-        "kubia/camunda": "0.4"
+        "kubia/camunda": "0.5"
     },
     "autoload": {
         "psr-4": {
