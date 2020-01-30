@@ -39,7 +39,7 @@ class AMQPResponse {
 }
 
 // for test; remove it
-for($i=0; $i<5; $i++) {
+for($i=0; $i<1; $i++) {
 
     $connection = new AMQPStreamConnection(RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS, RMQ_VHOST, false, 'AMQPLAIN', null, 'en_US', 3.0, 3.0, null, true, 60);
     $channel = $connection->channel();
@@ -50,10 +50,10 @@ for($i=0; $i<5; $i++) {
     $channel->basic_consume($callback_queue, '', false, false, false, false, [$AMQPResponse, 'onResponse']);
 
     // Usage
-    $usageHelp = 'Usage for example: php ./examples/test.php --otp="94876" id="db36f0c4-3927-11ea-8da5-0242ac110029"';
-    $options = getopt('', ['otp:', 'id:']);
+    $usageHelp = 'Usage for example: php ./examples/test.php --name="otpCheck" --otp="94876" id="db36f0c4-3927-11ea-8da5-0242ac110029"';
+    $options = getopt('', ['name:', 'otp:', 'id:']);
 
-    if(!isset($options['otp']) || !isset($options['id'])) {
+    if(!isset($options['name']) || !isset($options['otp']) || !isset($options['id'])) {
         fwrite(STDERR, "Error: Missing options.\n");
         fwrite(STDERR, $usageHelp . "\n");
         exit(1);
@@ -64,7 +64,7 @@ for($i=0; $i<5; $i++) {
             "otp" => $options['otp']
         ],
         "headers" => [
-            "camundaListenerMessageName" => "listener-otp-check",
+            "camundaListenerMessageName" => $options['name'],
             "camundaProcessInstanceId"   => $options['id'],
         ],
         'time'   => time(),
