@@ -50,7 +50,7 @@ for($i=0; $i<1; $i++) {
     $channel->basic_consume($callback_queue, '', false, false, false, false, [$AMQPResponse, 'onResponse']);
 
     // Usage
-    $usageHelp = 'Usage for example: php ./examples/test.php --name="otpCheck" --otp="94876" id="db36f0c4-3927-11ea-8da5-0242ac110029"';
+    $usageHelp = 'Usage for example: php ./examples/test.php --name="checkOtp" --otp="94876" id="db36f0c4-3927-11ea-8da5-0242ac110029"';
     $options = getopt('', ['name:', 'otp:', 'id:']);
 
     if(!isset($options['name']) || !isset($options['otp']) || !isset($options['id'])) {
